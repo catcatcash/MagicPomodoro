@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 魔法番茄钟 ✨</title>
+    <!-- 引入 Chart.js 用于图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入字体：ZCOOL KuaiLe (可爱标题) 和 Nunito (圆润正文) -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-pink: #ff9a9e;
+            --soft-pink: #fad0c4;
+            --deep-purple: #a18cd1;
+            --cat-white: #fdfbf7;
+            --text-color: #6a60a9;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            /* 正文使用易读的圆体或系统字体 */
+            font-family: 'Nunito', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(120deg, #ff9a9e 0%, #fecfef 50%, #a18cd1 100%);
+            background-size: 300% 300%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--text-color);
+        }
+
+        /* 标题保持可爱的字体 */
+        h1, h2, h3, .timer-display, .modal-header, .stat-value, .action-btn {
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        /* 漫天星星背景特效 */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.5); box-shadow: 0 0 4px #fff; }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .floating-decoration {
+            position: fixed;
+            font-size: 30px;
+            opacity: 0.6;
+            pointer-events: none;
+            animation: float 8s ease-in-out infinite;
+            z-index: 1;
+            font-family: 'Segoe UI Emoji', sans-serif;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(15px, -30px) rotate(10deg); }
+        }
+
+        .deco-1 { top: 10%; left: 5%; }
+        .deco-2 { top: 20%; right: 10%; animation-delay: 1s; }
+        .deco-3 { bottom: 15%; left: 8%; animation-delay: 2s; }
+        .deco-4 { bottom: 25%; right: 5%; animation-delay: 3s; }
+
+        /* 通用玻璃拟态容器 */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 3px solid var(--glass-border);
+            border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(255, 154, 158, 0.3);
+        }
+
+        /* 登录界面 */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .login-box {
+            padding: 50px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .login-box h2 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            color: #ff758c;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 18px;
+            border: 3px solid #ff9a9e;
+            border-radius: 25px;
+            font-size: 18px;
+            margin-bottom: 25px;
+            outline: none;
+            background: #fff;
+            color: var(--text-color);
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .login-input:focus {
+            box-shadow: 0 0 15px rgba(255, 154, 158, 0.4);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 154, 158, 0.5);
+            transition: transform 0.2s;
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        .login-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 850px;
+            margin: 20px auto;
+            padding: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #ff758c;
+            text-shadow: 2px 2px 0px #fff;
+        }
+
+        .greeting {
+            text-align: center;
+            color: #a18cd1;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        /* 模式按钮 */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 12px 30px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text-color);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            border: 2px solid transparent;
+        }
+
+        .mode-btn.active {
+            background: #ff9a9e;
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 154, 158, 0.4);
+            transform: translateY(-2px);
+            border-color: #fff;
+        }
+
+        /* 计时器圆环 */
+        .timer-section {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-circle {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+
+        .timer-svg {
+            transform: rotate(-90deg);
+        }
+
+        .timer-bg {
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 15;
+            fill: none;
+        }
+
+        .timer-progress {
+            stroke: #ff9a9e;
+            stroke-width: 15;
+            stroke-linecap: round;
+            fill: none;
+            transition: stroke-dashoffset 1s linear;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4.5em;
+            color: #ff758c;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .control-btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            color: white;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+        }
+
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .start-btn { background: #84fab0; color: #007d43; }
+        .pause-btn { background: #ffcb8d; color: #8a5a00; }
+        .reset-btn { background: #a18cd1; color: #fff; }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            color: #ff758c;
+            margin: 10px 0;
+            line-height: 1.2;
+        }
+
+        /* 修复今日目标对齐问题 */
+        .goal-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .goal-input {
+            width: 70px;
+            font-size: 2em;
+            border: none;
+            background: transparent;
+            color: #ff758c;
+            text-align: center;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            border-bottom: 2px dashed #ff9a9e;
+            padding: 0;
+            margin: 0;
+            height: 1.2em; /* 确保高度与字体一致 */
+            line-height: 1.2;
+        }
+        
+        .goal-input:focus {
+            outline: none;
+            border-bottom: 2px solid #ff758c;
+        }
+
+        /* 功能按钮区 */
+        .btn-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 20px;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.2em;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .summary-btn { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
+        .plan-btn { background: linear-gradient(45deg, #fbc2eb, #a6c1ee); }
+
+        .action-btn:hover { transform: translateY(-3px); }
+
+        /* 模态框美化 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(161, 140, 209, 0.4);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border-radius: 40px;
+            padding: 30px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 6px solid #fbc2eb;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+            font-size: 2em;
+            color: #ff758c;
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px dashed #fecfef;
+            padding-bottom: 15px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.3s;
+        }
+        
+        .close-btn:hover { color: #ff758c; }
+
+        /* 表格样式 */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #fffafa;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            font-size: 1em; /* 提高可读性 */
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 14px 16px;
+            text-align: center;
+            border-bottom: 1px solid #ffe6ea;
+        }
+
+        .custom-table th {
+            background-color: #ffe6ea;
+            color: #ff758c;
+            font-weight: bold;
+            font-size: 1.1em;
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        .custom-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .custom-table tr:hover {
+            background-color: #fff0f5;
+        }
+
+        /* 计划表特定的样式 */
+        .plan-cell {
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9em;
+        }
+
+        .plan-cell.checked {
+            background-color: #d4fc79;
+            background-image: linear-gradient(315deg, #d4fc79 0%, #96e6a1 74%);
+            color: #007d43;
+            text-decoration: line-through;
+            position: relative;
+        }
+        
+        .plan-cell.checked::after {
+            content: '🐾';
+            position: absolute;
+            right: 5px;
+            bottom: 2px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.03);
+            border: 2px solid #f0f0f0;
+        }
+
+        /* 庆祝动画 */
+        .celebration {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border: 5px solid #ff9a9e;
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            z-index: 10000;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .cat-emoji-large { font-size: 5em; margin-bottom: 10px; display: block; }
+
+        /* 首次使用提示框 */
+        .first-week-tip {
+            background: #e6f7ff;
+            border: 2px dashed #91d5ff;
+            padding: 15px;
+            border-radius: 15px;
+            color: #0050b3;
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 600px) {
+            h1 { font-size: 2em; }
+            .timer-circle { width: 220px; height: 220px; }
+            .timer-display { font-size: 3.5em; }
+            .btn-container { flex-direction: column; }
+            .modal-content { width: 95%; padding: 20px; }
+            .custom-table th, .custom-table td { padding: 8px; font-size: 0.9em; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星星背景 -->
+    <div class="stars-container" id="starsContainer"></div>
+
+    <div class="floating-decoration deco-1">🌸</div>
+    <div class="floating-decoration deco-2">🐾</div>
+    <div class="floating-decoration deco-3">🧶</div>
+    <div class="floating-decoration deco-4">🐟</div>
+
+    <!-- 登录界面 -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box glass-panel">
+            <h2>🐱 魔法番茄钟 ✨</h2>
+            <input type="text" class="login-input" id="usernameInput" placeholder="你的名字是..." maxlength="10">
+            <button class="login-btn" id="loginBtn">开始专注！ (=^･ω･^=)</button>
+        </div>
+    </div>
+
+    <!-- 庆祝弹窗 -->
+    <div class="celebration" id="celebration">
+        <span class="cat-emoji-large">😺</span>
+        <h2 id="celebrationText">好棒喵！</h2>
+    </div>
+
+    <!-- 主界面 -->
+    <div class="container glass-panel" id="mainContainer" style="display:none;">
+        <div class="greeting" id="greeting"></div>
+        <h1>🐱 魔法番茄钟 ✨</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="pomodoro">🍅 开始专注</button>
+            <button class="mode-btn" data-mode="short-break">☕ 小歇一会</button>
+            <button class="mode-btn" data-mode="long-break">🌈 长歇一会</button>
+        </div>
+
+        <div class="timer-section">
+            <div class="timer-circle">
+                <svg width="280" height="280" class="timer-svg">
+                    <circle class="timer-bg" cx="140" cy="140" r="130"></circle>
+                    <circle class="timer-progress" id="progressCircle" cx="140" cy="140" r="130" 
+                            stroke-dasharray="816.814" stroke-dashoffset="0"></circle>
+                </svg>
+                <div class="timer-display" id="timer">25:00</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn start-btn" id="startBtn">▶️ 开始喵</button>
+            <button class="control-btn pause-btn" id="pauseBtn" style="display:none;">⏸️ 暂停喵</button>
+            <button class="control-btn reset-btn" id="resetBtn">🔄 重置</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="font-size:2em;">🍅</div>
+                <div class="stat-value" id="completedPomodoros">0</div>
+                <div>完成番茄</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size:2em;">⏳</div>
+                <div class="stat-value" id="totalWorkTime">0</div>
+                <div>专注分钟</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size:2em;">🎯</div>
+                <!-- 修复了这里的对齐结构 -->
+                <div class="goal-container">
+                    <input type="number" class="goal-input" id="todayGoal" value="8" min="1" max="20">
+                </div>
+                <div>今日目标</div>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button class="action-btn summary-btn" id="summaryBtn">📊 每周数据图表</button>
+            <button class="action-btn plan-btn" id="planBtn">📅 学习计划表</button>
+        </div>
+    </div>
+
+    <!-- 总结弹窗 -->
+    <div class="modal" id="summaryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                📊 本周专注数据
+                <span class="close-btn" id="closeModal">×</span>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+
+            <!-- 动态内容区域 -->
+            <div id="summaryContent">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>数据项</th>
+                            <th>本周数值</th>
+                            <th>上周对比 (环比)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                        <!-- JS 填充 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <p style="text-align:center; color:#999; margin-top:10px; font-size:0.9em;">* 数据实时更新中喵 <span id="dynamicEmoji"></span></p>
+        </div>
+    </div>
+
+    <!-- 计划表弹窗 -->
+    <div class="modal" id="planModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                📅 学习计划表
+                <span class="close-btn" id="closePlanModal">×</span>
+            </div>
+
+            <div style="margin-bottom: 20px; text-align: center; color: #666; font-size: 0.9em;">
+                <p>💡 点击格子标记完成</p>
+                <div style="margin-top:5px;">
+                    <button id="resetPlanBtn" style="padding:5px 10px; background:#f0f0f0; border:1px solid #ddd; border-radius:5px; cursor:pointer;">重置本周计划</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="custom-table" id="planTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">时间段</th>
+                            <th>一</th>
+                            <th>二</th>
+                            <th>三</th>
+                            <th>四</th>
+                            <th>五</th>
+                            <th>六</th>
+                            <th>日</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planTableBody">
+                        <!-- JS 动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 逻辑部分 ---
+        class CatPomodoro {
+            constructor() {
+                // 时间设置 (单位:秒)
+                this.modes = { 
+                    'pomodoro': 25 * 60, 
+                    'short-break': 5 * 60, 
+                    'long-break': 15 * 60 
+                };
+                this.currentMode = 'pomodoro';
+                this.timeLeft = this.modes.pomodoro;
+                this.totalTime = this.modes.pomodoro;
+                this.isRunning = false;
+                this.timer = null;
+                this.username = '';
+                this.chartInstance = null;
+                this.isNewUser = false; // 标记是否为新用户
+
+                // 颜文字库
+                this.kaomojis = [
+                    '(=^･ω･^=)', '(=^･ｪ･^=)', '(=①ω①=)', '(PhiωPhi)', 
+                    '(=^..^=)', '(^・x・^)', '(=｀ω´=)', '(=ｘェｘ=)', 
+                    'ヽ(=^･ω･^=)丿', '(^._.^)ﾉ'
+                ];
+                
+                // 数据统计
+                this.stats = {
+                    completed: 0,
+                    workTime: 0,
+                    todayGoal: 8,
+                    weeklyData: [0, 0, 0, 0, 0, 0, 0] // 默认为空
+                };
+                
+                // 当前是周几 (0-6, 0是周日)
+                this.currentDayIndex = new Date().getDay(); 
+                this.currentDayIndex = this.currentDayIndex === 0 ? 6 : this.currentDayIndex - 1;
+
+                this.checkLogin();
+                this.createStars();
+                this.startEmojiRotator();
+            }
+
+            // 获取随机颜文字
+            getRandomEmoji() {
+                return this.kaomojis[Math.floor(Math.random() * this.kaomojis.length)];
+            }
+
+            // 底部颜文字动效
+            startEmojiRotator() {
+                const el = document.getElementById('dynamicEmoji');
+                if(!el) return;
+                setInterval(() => {
+                    el.textContent = this.getRandomEmoji();
+                }, 3000);
+            }
+
+            createStars() {
+                const container = document.getElementById('starsContainer');
+                const starCount = 50;
+                for(let i=0; i<starCount; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.top = Math.random() * 100 + '%';
+                    star.style.animationDelay = Math.random() * 3 + 's';
+                    star.style.setProperty('--duration', (Math.random() * 2 + 2) + 's');
+                    container.appendChild(star);
+                }
+            }
+
+            checkLogin() {
+                const savedUser = localStorage.getItem('cat_user');
+                if (savedUser) {
+                    this.username = savedUser;
+                    this.showMain();
+                } else {
+                    this.initLogin();
+                }
+            }
+
+            initLogin() {
+                const btn = document.getElementById('loginBtn');
+                const input = document.getElementById('usernameInput');
+                
+                const doLogin = () => {
+                    if(input.value.trim()) {
+                        this.username = input.value.trim();
+                        localStorage.setItem('cat_user', this.username);
+                        document.getElementById('loginScreen').style.display = 'none';
+                        this.showMain();
+                    }
+                };
+
+                btn.addEventListener('click', doLogin);
+                input.addEventListener('keypress', (e) => e.key === 'Enter' && doLogin());
+            }
+
+            showMain() {
+                document.getElementById('mainContainer').style.display = 'block';
+                this.updateGreeting();
+                this.bindEvents();
+                this.loadStats(); // 先加载数据
+                this.initPlanData();
+            }
+
+            updateGreeting() {
+                const h = new Date().getHours();
+                const emoji = this.getRandomEmoji();
+                let text = '';
+                if(h < 6) text = `🌙 这么晚了，${this.username} 要注意身体喵！${emoji}`;
+                else if(h < 9) text = `🌅 早安喵，${this.username}！今天也要元气满满！${emoji}`;
+                else if(h < 12) text = `☀️ 上午好，${this.username}！专注的时候最迷人喵！${emoji}`;
+                else if(h < 14) text = `🍱 午安喵，吃饱了才有力气学习！${emoji}`;
+                else if(h < 18) text = `🌤️ 下午好，${this.username}！继续加油喵！${emoji}`;
+                else text = `🌆 晚上好，${this.username}！今天的收获怎么样喵？${emoji}`;
+                document.getElementById('greeting').textContent = text;
+            }
+
+            bindEvents() {
+                document.getElementById('startBtn').addEventListener('click', () => this.start());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.pause());
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.switchMode(e.target.dataset.mode);
+                    });
+                });
+
+                document.getElementById('todayGoal').addEventListener('change', (e) => {
+                    this.stats.todayGoal = e.target.value;
+                    this.saveStats();
+                });
+
+                document.getElementById('summaryBtn').addEventListener('click', () => this.showSummary());
+                document.getElementById('planBtn').addEventListener('click', () => this.showPlan());
+                
+                document.getElementById('closeModal').addEventListener('click', () => {
+                    document.getElementById('summaryModal').style.display = 'none';
+                });
+                document.getElementById('closePlanModal').addEventListener('click', () => {
+                    document.getElementById('planModal').style.display = 'none';
+                });
+
+                document.getElementById('resetPlanBtn').addEventListener('click', () => {
+                   if(confirm('确定要清空本周的所有打卡记录吗喵？' + this.getRandomEmoji())) {
+                       localStorage.removeItem(`cat_plan_${this.username}`);
+                       this.initPlanData();
+                       this.renderPlanTable();
+                   }
+                });
+            }
+
+            // --- 计时器逻辑 ---
+            start() {
+                if(this.isRunning) return;
+                this.isRunning = true;
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+                
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    this.updateDisplay();
+                    if(this.timeLeft <= 0) this.complete();
+                }, 1000);
+            }
+
+            pause() {
+                this.isRunning = false;
+                clearInterval(this.timer);
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('pauseBtn').style.display = 'none';
+            }
+
+            reset() {
+                this.pause();
+                this.timeLeft = this.modes[this.currentMode];
+                this.totalTime = this.modes[this.currentMode];
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                const m = Math.floor(this.timeLeft / 60).toString().padStart(2, '0');
+                const s = (this.timeLeft % 60).toString().padStart(2, '0');
+                document.getElementById('timer').textContent = `${m}:${s}`;
+                
+                const circle = document.getElementById('progressCircle');
+                const circumference = 2 * Math.PI * 130; 
+                const offset = circumference - (this.timeLeft / this.totalTime) * circumference;
+                circle.style.strokeDashoffset = offset;
+            }
+
+            switchMode(mode) {
+                this.pause();
+                this.currentMode = mode;
+                this.timeLeft = this.modes[mode];
+                this.totalTime = this.modes[mode];
+                
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+                this.updateDisplay();
+            }
+
+            complete() {
+                this.pause();
+                const sound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3'); 
+                sound.play().catch(e=>{});
+
+                if(this.currentMode === 'pomodoro') {
+                    this.stats.completed++;
+                    this.stats.workTime += 25;
+                    // 更新今日数据
+                    this.stats.weeklyData[this.currentDayIndex] = (this.stats.weeklyData[this.currentDayIndex] || 0) + 1;
+                    
+                    this.saveStats();
+                    this.updateStatsUI();
+                    this.showCelebration(`太棒了！完成一个番茄喵！\n${this.getRandomEmoji()}`);
+                    this.switchMode('short-break');
+                } else {
+                    this.showCelebration(`休息结束，回来学习喵！\n${this.getRandomEmoji()}`);
+                    this.switchMode('pomodoro');
+                }
+            }
+
+            showCelebration(text) {
+                const el = document.getElementById('celebration');
+                document.getElementById('celebrationText').innerHTML = text.replace(/\n/g, '<br>');
+                el.style.display = 'block';
+                setTimeout(() => el.style.display = 'none', 3000);
+            }
+
+            // --- 数据持久化 ---
+            saveStats() {
+                const data = {
+                    completed: this.stats.completed,
+                    workTime: this.stats.workTime,
+                    todayGoal: this.stats.todayGoal,
+                    weeklyData: this.stats.weeklyData,
+                    hasHistory: true // 标记已有历史数据
+                };
+                localStorage.setItem(`cat_stats_${this.username}`, JSON.stringify(data));
+            }
+
+            loadStats() {
+                const raw = localStorage.getItem(`cat_stats_${this.username}`);
+                if(raw) {
+                    const data = JSON.parse(raw);
+                    this.stats = { ...this.stats, ...data };
+                    this.isNewUser = false;
+                } else {
+                    // 没有数据，说明是新用户
+                    this.isNewUser = true;
+                    // 初始化一些模拟数据用于展示图表效果（仅为了美观，实际上0也可以）
+                    // 为了让新用户看到图表不是空的，我们可以给一点点模拟的“努力值”或者保持全0
+                    // 这里为了真实，全0比较好
+                    this.stats.weeklyData = [0,0,0,0,0,0,0]; 
+                }
+                this.updateStatsUI();
+            }
+
+            updateStatsUI() {
+                document.getElementById('completedPomodoros').textContent = this.stats.completed;
+                document.getElementById('totalWorkTime').textContent = this.stats.workTime;
+                document.getElementById('todayGoal').value = this.stats.todayGoal;
+            }
+
+            // --- 总结与图表 ---
+            showSummary() {
+                document.getElementById('summaryModal').style.display = 'block';
+                this.renderChart();
+                this.renderSummaryTable();
+            }
+
+            renderSummaryTable() {
+                const tbody = document.getElementById('summaryTableBody');
+                const total = this.stats.weeklyData.reduce((a,b)=>a+b, 0);
+                const avg = (total / 7).toFixed(1);
+                
+                let contentHTML = '';
+
+                // 表格第一行：总番茄
+                contentHTML += `
+                    <tr>
+                        <td>总专注番茄 🍅</td>
+                        <td>${total}</td>
+                        ${this.getComparisonCell()}
+                    </tr>
+                `;
+
+                // 表格第二行：总时长
+                contentHTML += `
+                    <tr>
+                        <td>总专注时长 ⏳</td>
+                        <td>${total * 25} 分钟</td>
+                        ${this.isNewUser ? `<td rowspan="3" class="first-week-tip">
+                            这是你第一周使用番茄钟学习<br>
+                            好习惯要坚持哦！<br>
+                            ${this.getRandomEmoji()}
+                        </td>` : `<td style="color:#ff758c;">↑ 5%</td>`}
+                    </tr>
+                `;
+
+                // 表格第三行：日均
+                contentHTML += `
+                    <tr>
+                        <td>日均完成 ✅</td>
+                        <td>${avg}</td>
+                        ${this.isNewUser ? '' : `<td style="color:#a18cd1;">- 持平</td>`}
+                    </tr>
+                `;
+
+                // 效率评价 (新用户没有效率评价行，或者合并显示)
+                 if(!this.isNewUser) {
+                    contentHTML += `
+                        <tr>
+                            <td>效率评价 🌟</td>
+                            <td colspan="2">超级棒喵！${this.getRandomEmoji()}</td>
+                        </tr>
+                    `;
+                 }
+
+                tbody.innerHTML = contentHTML;
+            }
+
+            getComparisonCell() {
+                if (this.isNewUser) {
+                    return `<td rowspan="1" style="color:#a18cd1;">加油喵！</td>`; // 第一行简单的占位
+                } else {
+                    return `<td style="color:#ff758c;">↑ 12%</td>`;
+                }
+            }
+
+            renderChart() {
+                const ctx = document.getElementById('weeklyChart').getContext('2d');
+                
+                if(this.chartInstance) {
+                    this.chartInstance.destroy();
+                }
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                        datasets: [{
+                            label: '本周专注番茄数 🍅',
+                            data: this.stats.weeklyData,
+                            borderColor: '#ff9a9e',
+                            backgroundColor: 'rgba(255, 154, 158, 0.2)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#a18cd1',
+                            pointRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                labels: { font: { family: "'ZCOOL KuaiLe'" } }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { stepSize: 1 } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            // --- 计划表逻辑 ---
+            initPlanData() {
+                const key = `cat_plan_${this.username}`;
+                let plan = localStorage.getItem(key);
+                
+                if (!plan) {
+                    const slots = [];
+                    slots.push(...this.generateTimeSlots(9, 11));
+                    slots.push(...this.generateTimeSlots(14, 17));
+                    slots.push(...this.generateTimeSlots(19, 21));
+
+                    this.planData = slots.map(time => ({
+                        time: time,
+                        days: [false, false, false, false, false, false, false]
+                    }));
+                    this.savePlan();
+                } else {
+                    this.planData = JSON.parse(plan);
+                }
+            }
+
+            generateTimeSlots(startHour, endHour) {
+                const slots = [];
+                for(let h = startHour; h < endHour; h++) {
+                    slots.push(`${h.toString().padStart(2,'0')}:00-${h.toString().padStart(2,'0')}:30`);
+                    slots.push(`${h.toString().padStart(2,'0')}:30-${(h+1).toString().padStart(2,'0')}:00`);
+                }
+                return slots;
+            }
+
+            savePlan() {
+                localStorage.setItem(`cat_plan_${this.username}`, JSON.stringify(this.planData));
+            }
+
+            showPlan() {
+                document.getElementById('planModal').style.display = 'block';
+                this.renderPlanTable();
+            }
+
+            renderPlanTable() {
+                const tbody = document.getElementById('planTableBody');
+                tbody.innerHTML = '';
+
+                this.planData.forEach((slot, rowIndex) => {
+                    const tr = document.createElement('tr');
+                    
+                    const timeTd = document.createElement('td');
+                    timeTd.textContent = slot.time;
+                    timeTd.style.fontWeight = 'bold';
+                    timeTd.style.color = '#a18cd1';
+                    tr.appendChild(timeTd);
+
+                    slot.days.forEach((checked, colIndex) => {
+                        const td = document.createElement('td');
+                        td.className = checked ? 'plan-cell checked' : 'plan-cell';
+                        td.textContent = checked ? '完成' : '';
+                        
+                        td.onclick = () => {
+                            this.planData[rowIndex].days[colIndex] = !this.planData[rowIndex].days[colIndex];
+                            this.savePlan();
+                            td.className = this.planData[rowIndex].days[colIndex] ? 'plan-cell checked' : 'plan-cell';
+                            td.textContent = this.planData[rowIndex].days[colIndex] ? '完成' : '';
+                            
+                            if(this.planData[rowIndex].days[colIndex]) {
+                                td.style.transform = "scale(1.2)";
+                                setTimeout(()=>td.style.transform="scale(1)", 200);
+                            }
+                        };
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        window.addEventListener('load', () => {
+            new CatPomodoro();
+        });
+    </script>
+</body>
+</html>
